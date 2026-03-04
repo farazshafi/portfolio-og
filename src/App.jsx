@@ -1,9 +1,9 @@
 import { Suspense, useRef, useState, useMemo, useEffect } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { OrbitControls, Stars, Float, MeshDistortMaterial, Sphere } from '@react-three/drei'
+import { OrbitControls, Stars, Float, MeshDistortMaterial, Sphere, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { motion, useSpring, useMotionValue, useTransform, AnimatePresence } from 'framer-motion'
-import { Github, Linkedin, Mail, ExternalLink, Code, Database, Globe, Rocket, X, CheckCircle2, ArrowRight } from 'lucide-react'
+import { Github, Linkedin, Mail, ExternalLink, Code, Database, Globe, Rocket, X, CheckCircle2, ArrowRight, Grab, Hand, Menu, Download } from 'lucide-react'
 
 function useFaviconAnimation() {
   useEffect(() => {
@@ -112,27 +112,56 @@ function Rig() {
   })
 }
 
-function CustomCursor() {
+function CustomCursor({ cursorState }) {
   const cursorX = useMotionValue(-100)
   const cursorY = useMotionValue(-100)
   const springConfig = { damping: 25, stiffness: 700 }
   const cursorXSpring = useSpring(cursorX, springConfig)
   const cursorYSpring = useSpring(cursorY, springConfig)
 
-  useState(() => {
+  const isHovering = cursorState === 'hover';
+  const isGrabbing = cursorState === 'grabbing';
+  const isDownloading = cursorState === 'download';
+
+  useEffect(() => {
     const moveCursor = (e) => {
       cursorX.set(e.clientX - 16)
       cursorY.set(e.clientY - 16)
     }
-    window.addEventListener('mousemove', moveCursor)
-    return () => window.removeEventListener('mousemove', moveCursor)
-  })
+    window.addEventListener('pointermove', moveCursor)
+    window.addEventListener('pointerdown', moveCursor)
+    return () => {
+      window.removeEventListener('pointermove', moveCursor)
+      window.removeEventListener('pointerdown', moveCursor)
+    }
+  }, [])
 
   return (
     <motion.div
-      className="custom-cursor"
+      className={`custom-cursor ${(isHovering || isGrabbing || isDownloading) ? 'hovering' : ''}`}
       style={{ translateX: cursorXSpring, translateY: cursorYSpring }}
-    />
+      animate={{
+        scale: (isHovering || isGrabbing || isDownloading) ? 1.8 : 1,
+        borderColor: (isHovering || isGrabbing || isDownloading) ? '#00ffff' : '#7000ff',
+        backgroundColor: (isHovering || isGrabbing || isDownloading) ? 'rgba(0, 255, 255, 0.1)' : 'rgba(112, 0, 255, 0)'
+      }}
+      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+    >
+      <AnimatePresence>
+        {(isHovering || isGrabbing || isDownloading) && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.5 }}
+            className="cursor-icon"
+          >
+            {isDownloading ? <Download size={18} color="#00ff88" /> : 
+             isGrabbing ? <Hand size={18} color="#00ffff" /> : 
+             <Grab size={18} color="#00ffff" />}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   )
 }
 
@@ -209,6 +238,163 @@ function ProjectModal({ project, onClose }) {
   )
 }
 
+function ResumeSection({ onCursorStateChange }) {
+  const [isDropped, setIsDropped] = useState(false);
+  const pdfRef = useRef();
+
+  const lastDownloadTime = useRef(0);
+  const handleDownload = () => {
+    const now = Date.now();
+    if (now - lastDownloadTime.current < 2000) return; // 2s debounce
+    lastDownloadTime.current = now;
+
+    const link = document.createElement('a');
+    link.href = '/faraz-shafi-resume.pdf';
+    link.download = 'Faraz_Shafi_Resume.pdf';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setIsDropped(true);
+    setTimeout(() => setIsDropped(false), 2000);
+  };
+
+  return (
+    <section id="resume" className="resume-section">
+      <div className="section-header">
+        <span className="section-number">03</span>
+        <h2>Professional Path</h2>
+      </div>
+      <div className="resume-grid" style={{ position: 'relative' }}>
+        <div className="resume-visual-bg">
+          <div 
+            className="resume-3d-container-v2"
+            onMouseEnter={() => onCursorStateChange('hover')}
+            onMouseLeave={() => onCursorStateChange('default')}
+          >
+            <div className="drag-hint">DRAG RESUME TO DOWNLOAD</div>
+          </div>
+          <div className={`download-zone ${isDropped ? 'success' : ''}`}>
+            <div className="zone-content">
+              <motion.div
+                animate={isDropped ? { scale: [1, 1.2, 1], rotate: [0, 360, 0] } : { y: [0, -10, 0] }}
+                transition={{ repeat: isDropped ? 0 : Infinity, duration: 2 }}
+              >
+                {isDropped ? <CheckCircle2 size={80} color="#00ff88" /> : <Rocket size={80} color="var(--accent-color)" />}
+              </motion.div>
+              <h3>{isDropped ? 'Downloading...' : 'Drop Zone'}</h3>
+              <p>Ready for impact? Drag the 3D resume here.</p>
+            </div>
+            <div className="zone-glow"></div>
+          </div>
+        </div>
+        
+        <div className="resume-canvas-overlay">
+          <Canvas camera={{ position: [0, 0, 5], fov: 50 }}>
+            <ambientLight intensity={0.5} />
+            <pointLight position={[10, 10, 10]} />
+            <Suspense fallback={null}>
+              <DraggablePDF onDrop={handleDownload} onStateChange={onCursorStateChange} />
+            </Suspense>
+            <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+          </Canvas>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function DraggablePDF({ onDrop, onStateChange }) {
+  const meshRef = useRef();
+  const { viewport } = useThree();
+  const { scene } = useGLTF('/document-3d/scene.gltf');
+  
+  const restingPos = useMemo(() => {
+    if (viewport.width < 5) return [0, viewport.height / 4, 0]; // Centered in top box for mobile
+    return [-viewport.width / 4, 0, 0]; // Centered in left box for desktop
+  }, [viewport.width, viewport.height]);
+
+  const [pos, setPos] = useState(restingPos);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Sync resting position when window resizes
+  useEffect(() => {
+    if (!isDragging) setPos(restingPos);
+  }, [restingPos, isDragging]);
+
+  // Responsive scale: smaller on mobile, larger on desktop
+  const scale = viewport.width < 5 ? 0.3 : 0.8;
+
+  // Clone the scene so we can modify it without affecting other instances (if any)
+  const model = useMemo(() => scene.clone(), [scene]);
+
+  useFrame((state) => {
+    if (!meshRef.current) return;
+    if (!isDragging) {
+      // Subtle float animation when not being dragged
+      meshRef.current.rotation.y = Math.sin(state.clock.elapsedTime) * 0.2;
+      meshRef.current.position.y = Math.sin(state.clock.elapsedTime * 1.5) * 0.1 + pos[1];
+    }
+  });
+
+  return (
+    <group>
+      <primitive
+        object={model}
+        ref={meshRef}
+        position={pos}
+        rotation={[70, Math.PI/1  , -50]} // Rotate 90 degrees to make it vertical
+        scale={[scale, scale, scale]} 
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          e.target.setPointerCapture(e.pointerId);
+          setIsDragging(true);
+          onStateChange('grabbing');
+        }}
+        onPointerMove={(e) => {
+          if (isDragging) {
+            // Use R3F's normalized pointer coordinates (-1 to 1)
+            const x = e.pointer.x;
+            const y = e.pointer.y;
+            
+            const newX = (x * viewport.width) / 2;
+            const newY = (y * viewport.height) / 2;
+            setPos([newX, newY, 0]);
+
+            // Responsive threshold check
+            const isOverDropZone = viewport.width < 5 
+              ? newY < -viewport.height / 10  // Mobile: Dragged down
+              : newX > viewport.width / 10;   // Desktop: Dragged right
+
+            if (isOverDropZone) {
+              onStateChange('download');
+            } else {
+              onStateChange('grabbing');
+            }
+          }
+        }}
+        onPointerUp={(e) => {
+          if (!isDragging) return;
+          e.target.releasePointerCapture(e.pointerId);
+          setIsDragging(false);
+          
+          const isOverDropZone = viewport.width < 5 
+            ? pos[1] < -viewport.height / 10
+            : pos[0] > viewport.width / 10;
+
+          if (isOverDropZone) {
+            onDrop();
+          }
+          setPos(restingPos); // Snap back to zone center
+          onStateChange('hover');
+        }}
+        onPointerOver={() => onStateChange('hover')}
+        onPointerOut={() => onStateChange('default')}
+        cursor="grab"
+      />
+    </group>
+  );
+}
+
 function SkillCategory({ title, skills, index }) {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -250,6 +436,8 @@ function SkillCategory({ title, skills, index }) {
 function App() {
   useFaviconAnimation();
   const [selectedProject, setSelectedProject] = useState(null);
+  const [cursorState, setCursorState] = useState('default');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const projects = [
     {
       title: "Collaborative Code Editor",
@@ -289,16 +477,23 @@ function App() {
 
   return (
     <div className="root-container">
-      <CustomCursor />
+      <CustomCursor cursorState={cursorState} />
       <InteractiveBackground />
       <AnimatePresence>{selectedProject && <ProjectModal project={selectedProject} onClose={() => setSelectedProject(null)} />}</AnimatePresence>
-      <nav className="navbar">
+      <nav className={`navbar ${isMenuOpen ? 'menu-open' : ''}`}>
         <div className="logo">FARAZ SHAFI</div>
-        <div className="nav-links">
-          <a href="#hero">Intro</a>
-          <a href="#work">Projects</a>
-          <a href="#skills">Stack</a>
-          <a href="#contact">Contact</a>
+        
+        {/* Mobile Menu Toggle */}
+        <button className="menu-toggle" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+          {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
+        </button>
+
+        <div className={`nav-links ${isMenuOpen ? 'active' : ''}`}>
+          <a href="#hero" onClick={() => setIsMenuOpen(false)}>Intro</a>
+          <a href="#work" onClick={() => setIsMenuOpen(false)}>Projects</a>
+          <a href="#skills" onClick={() => setIsMenuOpen(false)}>Stack</a>
+          <a href="#resume" onClick={() => setIsMenuOpen(false)}>Resume</a>
+          <a href="#contact" onClick={() => setIsMenuOpen(false)}>Contact</a>
         </div>
       </nav>
       <main>
@@ -339,6 +534,7 @@ function App() {
             {skillCategories.map((cat, i) => (<SkillCategory key={i} {...cat} index={i} />))}
           </div>
         </section>
+        <ResumeSection onCursorStateChange={setCursorState} />
         <section id="contact" className="contact-section">
           <motion.div className="contact-card" initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }}>
             <span className="section-number">Available for New Challenges</span>

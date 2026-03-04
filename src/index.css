@@ -54,6 +54,21 @@ body {
   background: var(--accent-color);
   border-radius: 50%;
   transform: translate(-50%, -50%);
+  transition: opacity 0.3s;
+}
+
+.custom-cursor.hovering::after {
+  opacity: 0;
+}
+
+.cursor-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .text-gradient {
@@ -102,6 +117,62 @@ body {
 
 .nav-links a:hover {
   opacity: 1;
+}
+
+.menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  z-index: 1001;
+}
+
+@media (max-width: 768px) {
+  .navbar {
+    padding: 20px 5%;
+  }
+
+  .menu-toggle {
+    display: block;
+    cursor: pointer !important;
+  }
+
+  .nav-links {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 80%;
+    height: 100vh;
+    background: rgba(10, 10, 10, 0.95);
+    backdrop-filter: blur(20px);
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 30px;
+    transition: right 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+    z-index: 1000;
+    border-left: 1px solid var(--glass-border);
+  }
+
+  .nav-links.active {
+    right: 0;
+  }
+
+  .nav-links a {
+    font-size: 1.2rem;
+    opacity: 0.8;
+  }
+
+  .hero-title {
+    font-size: clamp(2rem, 10vw, 4rem);
+  }
+
+  .hero-cta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 30px;
+  }
 }
 
 #hero {
@@ -488,6 +559,138 @@ section {
 .btn-outline:hover {
   background: var(--accent-color);
   color: white;
+}
+
+/* Resume Section */
+.resume-section {
+  padding: 100px 10%;
+  background: linear-gradient(to bottom, #050505, #0a0a0a);
+}
+
+.resume-grid {
+  display: flex;
+  flex-direction: column;
+  margin-top: 60px;
+  min-height: auto;
+  position: relative;
+}
+
+.resume-visual-bg {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  width: 100%;
+  z-index: 1;
+}
+
+@media (max-width: 968px) {
+  .resume-visual-bg {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  .resume-3d-container-v2, .download-zone {
+    height: 350px;
+  }
+}
+
+.resume-3d-container-v2 {
+  height: 500px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.resume-canvas-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.resume-canvas-overlay > div {
+  width: 100% !important;
+  height: 100% !important;
+  pointer-events: none;
+}
+
+.resume-canvas-overlay canvas {
+  pointer-events: auto !important;
+  touch-action: none !important;
+}
+
+.drag-hint {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(112, 0, 255, 0.2);
+  padding: 8px 20px;
+  border-radius: 100px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--accent-color);
+  pointer-events: none;
+  border: 1px solid var(--accent-color);
+  backdrop-filter: blur(5px);
+  z-index: 2;
+}
+
+.download-zone {
+  height: 500px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 2px dashed var(--glass-border);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  overflow: hidden;
+}
+
+@media (max-width: 968px) {
+  .download-zone {
+    height: 350px;
+  }
+}
+
+.download-zone.success {
+  border-color: #00ff88;
+  background: rgba(0, 255, 136, 0.05);
+}
+
+.zone-content {
+  text-align: center;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.zone-content h3 {
+  font-size: 2rem;
+  margin: 20px 0 10px;
+  color: var(--text-color);
+}
+
+.zone-content p {
+  color: var(--muted-color);
+  font-size: 1.1rem;
+}
+
+.zone-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(112, 0, 255, 0.1) 0%, transparent 70%);
+  z-index: 1;
 }
 
 /* Canvas */
