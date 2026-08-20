@@ -3,7 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Stars, Float, MeshDistortMaterial, Sphere, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { motion, useSpring, useMotionValue, useTransform, AnimatePresence } from 'framer-motion'
-import { Github, Linkedin, Mail, ExternalLink, Code, Database, Globe, Rocket, X, CheckCircle2, ArrowRight, Grab, Hand, Menu, Download } from 'lucide-react'
+import { Github, Linkedin, Mail, ExternalLink, Code, Database, Globe, Rocket, X, CheckCircle2, ArrowRight, Grab, Hand, Menu, Download, Clock, AlertTriangle, Radio } from 'lucide-react'
 
 function useFaviconAnimation() {
   useEffect(() => {
@@ -13,31 +13,31 @@ function useFaviconAnimation() {
     canvas.height = 32;
     const ctx = canvas.getContext('2d');
     let frame = 0;
-    
+
     // Scrolling title setup
     const baseTitle = "Faraz Shafi | Full-Stack Engineer ";
     let titleIndex = 0;
 
     const animate = () => {
       if (!favicon) return;
-      
+
       const size = 32;
       ctx.clearRect(0, 0, size, size);
-      
+
       // Calculate dynamic values
       const pulse = Math.sin(frame * 0.15);
       const rotation = frame * 0.1;
       const hue = (270 + Math.sin(frame * 0.05) * 30) % 360; // oscillate between purple and blue
-      
+
       ctx.save();
       ctx.translate(size / 2, size / 2);
       ctx.rotate(rotation);
-      
+
       // Draw outer glow
       const gradient = ctx.createRadialGradient(0, 0, 4, 0, 0, 16);
       gradient.addColorStop(0, `hsla(${hue}, 100%, 60%, 1)`);
       gradient.addColorStop(1, `hsla(${hue}, 100%, 60%, 0)`);
-      
+
       ctx.beginPath();
       ctx.arc(0, 0, 14 + pulse * 2, 0, Math.PI * 2);
       ctx.fillStyle = gradient;
@@ -46,10 +46,10 @@ function useFaviconAnimation() {
       // Draw rotating core square
       ctx.beginPath();
       const rectSize = 12 + pulse * 2;
-      ctx.roundRect(-rectSize/2, -rectSize/2, rectSize, rectSize, 3);
+      ctx.roundRect(-rectSize / 2, -rectSize / 2, rectSize, rectSize, 3);
       ctx.fillStyle = `hsla(${hue}, 100%, 70%, 1)`;
       ctx.fill();
-      
+
       // Inner dot
       ctx.beginPath();
       ctx.arc(0, 0, 3, 0, Math.PI * 2);
@@ -59,7 +59,7 @@ function useFaviconAnimation() {
       ctx.restore();
 
       favicon.href = canvas.toDataURL('image/png');
-      
+
       // Title scrolling
       if (frame % 2 === 0) { // Faster title scroll
         document.title = baseTitle.substring(titleIndex) + baseTitle.substring(0, titleIndex);
@@ -155,9 +155,9 @@ function CustomCursor({ cursorState }) {
             exit={{ opacity: 0, scale: 0.5 }}
             className="cursor-icon"
           >
-            {isDownloading ? <Download size={18} color="#00ff88" /> : 
-             isGrabbing ? <Hand size={18} color="#00ffff" /> : 
-             <Grab size={18} color="#00ffff" />}
+            {isDownloading ? <Download size={18} color="#00ff88" /> :
+              isGrabbing ? <Hand size={18} color="#00ffff" /> :
+                <Grab size={18} color="#00ffff" />}
           </motion.div>
         )}
       </AnimatePresence>
@@ -165,7 +165,8 @@ function CustomCursor({ cursorState }) {
   )
 }
 
-function ProjectCard({ title, description, tags, image, github, index, onSelect }) {
+function ProjectCard({ project, index, onSelect, onRequestLive }) {
+  const { title, description, tags, image, github, liveUrl } = project;
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const rotateX = useSpring(useTransform(y, [-100, 100], [30, -30]), { damping: 20 });
@@ -191,10 +192,28 @@ function ProjectCard({ title, description, tags, image, github, index, onSelect 
         style={{ rotateX, rotateY, transformStyle: "preserve-3d", cursor: 'pointer' }}
       >
         <div className="project-image-container" style={{ backgroundImage: `url(${image})`, backgroundSize: 'cover', backgroundPosition: 'center', transform: "translateZ(50px)" }}>
+          {liveUrl && (
+            <div className="live-badge">
+              <span className="pulse-dot"></span> Live
+            </div>
+          )}
           <div className="project-overlay">
             <div className="project-links">
-              <a href={github} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}><Github size={24} /></a>
-              <ExternalLink size={24} />
+              <a href={github} target="_blank" rel="noreferrer" title="Source Code" onClick={(e) => e.stopPropagation()}><Github size={24} /></a>
+              {liveUrl ? (
+                <button
+                  className="icon-link-btn"
+                  title="Go Live"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRequestLive(project);
+                  }}
+                >
+                  <Radio size={24} color="#00ff88" />
+                </button>
+              ) : (
+                <ExternalLink size={24} />
+              )}
             </div>
           </div>
         </div>
@@ -204,13 +223,27 @@ function ProjectCard({ title, description, tags, image, github, index, onSelect 
           </div>
           <h3>{title}</h3>
           <p>{description}</p>
+
+          {liveUrl && (
+            <div style={{ marginTop: '20px' }}>
+              <button
+                className="btn-live-card"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRequestLive(project);
+                }}
+              >
+                <Radio size={16} /> Live Demo
+              </button>
+            </div>
+          )}
         </div>
       </motion.div>
     </motion.div>
   )
 }
 
-function ProjectModal({ project, onClose }) {
+function ProjectModal({ project, onClose, onRequestLive }) {
   if (!project) return null;
   return (
     <motion.div className="modal-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
@@ -228,10 +261,70 @@ function ProjectModal({ project, onClose }) {
                 <div key={i} className="feature-item"><CheckCircle2 size={18} color="var(--accent-color)" /><span>{feature}</span></div>
               ))}
             </div>
-            <div style={{ display: 'flex', gap: '20px', marginTop: '40px' }}>
-              <a href={project.github} target="_blank" rel="noreferrer" className="btn-primary">Source Code</a>
+            <div style={{ display: 'flex', gap: '15px', marginTop: '40px', flexWrap: 'wrap' }}>
+              <a href={project.github} target="_blank" rel="noreferrer" className="btn-outline" style={{ marginTop: 0 }}>Source Code</a>
+              {project.liveUrl && (
+                <button
+                  className="btn-primary"
+                  onClick={() => {
+                    onClose();
+                    onRequestLive(project);
+                  }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                >
+                  <Radio size={18} /> Live Demo
+                </button>
+              )}
             </div>
           </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+function LiveConfirmationModal({ project, onClose, onConfirm }) {
+  if (!project) return null;
+
+  return (
+    <motion.div className="modal-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
+      <motion.div
+        className="modal-content live-modal-content"
+        initial={{ scale: 0.85, y: 30, opacity: 0 }}
+        animate={{ scale: 1, y: 0, opacity: 1 }}
+        exit={{ scale: 0.85, y: 30, opacity: 0 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button className="close-btn" onClick={onClose}><X size={20} /></button>
+
+        <div className="live-modal-header">
+          <div className="live-modal-icon">
+            <Clock size={36} color="#00ff88" />
+          </div>
+          <h2>Launching Live Demo</h2>
+          <span className="project-name-badge">{project.title}</span>
+        </div>
+
+        <div className="live-modal-body">
+          <div className="alert-box">
+            <AlertTriangle size={22} color="#ffb703" className="alert-icon" />
+            <p>
+              <strong>Notice: Server Spin-Up Time</strong><br />
+              This web application's backend server is hosted on a free/dormant tier. If the server is currently sleeping, it may take <strong>30 to 50 seconds</strong> to wake up and respond on your first load.
+            </p>
+          </div>
+          <p className="warmup-info">
+            ⚡ I already sent a wake-up ping in the background to speed up your load!
+          </p>
+        </div>
+
+        <div className="live-modal-footer">
+          <button className="btn-secondary" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="btn-go-live" onClick={onConfirm}>
+            <Radio size={18} /> Go Live
+          </button>
         </div>
       </motion.div>
     </motion.div>
@@ -266,7 +359,7 @@ function ResumeSection({ onCursorStateChange }) {
       </div>
       <div className="resume-grid" style={{ position: 'relative' }}>
         <div className="resume-visual-bg">
-          <div 
+          <div
             className="resume-3d-container-v2"
             onMouseEnter={() => onCursorStateChange('hover')}
             onMouseLeave={() => onCursorStateChange('default')}
@@ -287,7 +380,7 @@ function ResumeSection({ onCursorStateChange }) {
             <div className="zone-glow"></div>
           </div>
         </div>
-        
+
         <div className="resume-canvas-overlay">
           <Canvas camera={{ position: [0, 0, 5], fov: 50 }}>
             <ambientLight intensity={0.5} />
@@ -307,7 +400,7 @@ function DraggablePDF({ onDrop, onStateChange }) {
   const meshRef = useRef();
   const { viewport } = useThree();
   const { scene } = useGLTF('/document-3d/scene.gltf');
-  
+
   const restingPos = useMemo(() => {
     if (viewport.width < 5) return [0, viewport.height / 4, 0]; // Centered in top box for mobile
     return [-viewport.width / 4, 0, 0]; // Centered in left box for desktop
@@ -342,8 +435,8 @@ function DraggablePDF({ onDrop, onStateChange }) {
         object={model}
         ref={meshRef}
         position={pos}
-        rotation={[70, Math.PI/1  , -50]} // Rotate 90 degrees to make it vertical
-        scale={[scale, scale, scale]} 
+        rotation={[70, Math.PI / 1, -50]} // Rotate 90 degrees to make it vertical
+        scale={[scale, scale, scale]}
         onPointerDown={(e) => {
           e.stopPropagation();
           e.target.setPointerCapture(e.pointerId);
@@ -355,13 +448,13 @@ function DraggablePDF({ onDrop, onStateChange }) {
             // Use R3F's normalized pointer coordinates (-1 to 1)
             const x = e.pointer.x;
             const y = e.pointer.y;
-            
+
             const newX = (x * viewport.width) / 2;
             const newY = (y * viewport.height) / 2;
             setPos([newX, newY, 0]);
 
             // Responsive threshold check
-            const isOverDropZone = viewport.width < 5 
+            const isOverDropZone = viewport.width < 5
               ? newY < -viewport.height / 10  // Mobile: Dragged down
               : newX > viewport.width / 10;   // Desktop: Dragged right
 
@@ -376,8 +469,8 @@ function DraggablePDF({ onDrop, onStateChange }) {
           if (!isDragging) return;
           e.target.releasePointerCapture(e.pointerId);
           setIsDragging(false);
-          
-          const isOverDropZone = viewport.width < 5 
+
+          const isOverDropZone = viewport.width < 5
             ? pos[1] < -viewport.height / 10
             : pos[0] > viewport.width / 10;
 
@@ -436,8 +529,23 @@ function SkillCategory({ title, skills, index }) {
 function App() {
   useFaviconAnimation();
   const [selectedProject, setSelectedProject] = useState(null);
+  const [pendingLiveProject, setPendingLiveProject] = useState(null);
   const [cursorState, setCursorState] = useState('default');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // Pre-warm / ping live project backend links when someone enters the portfolio page
+  useEffect(() => {
+    const liveUrls = [
+      "https://codie-five.vercel.app/",
+      "https://progad.vercel.app/"
+    ];
+    liveUrls.forEach(url => {
+      fetch(url, { mode: 'no-cors' }).catch(() => {
+        // Silent catch for pre-warming ping
+      });
+    });
+  }, []);
+
   const projects = [
     {
       title: "Collaborative Code Editor",
@@ -446,7 +554,8 @@ function App() {
       features: ["Real-time cursor tracking and code sync", "Conflict-free replicated data types (CRDTs)", "Integrated voice and text communication", "Multiple theme support with Monaco Editor"],
       tags: ["Next.js", "Socket.io", "GraphQL", "Monaco Editor"],
       image: "/editor.png",
-      github: "https://github.com/farazshafi/CODIE"
+      github: "https://github.com/farazshafi/CODIE",
+      liveUrl: "https://codie-five.vercel.app/"
     },
     {
       title: "PROGAD E-Commerce",
@@ -455,7 +564,8 @@ function App() {
       features: ["Face-recognition based secure login", "Real-time sales and inventory dashboards", "Seamless Razorpay payment integration", "Automated PDF invoice generation"],
       tags: ["React", "Express", "Node.js", "Redis"],
       image: "/progad.png",
-      github: "https://github.com/farazshafi/PROGAD"
+      github: "https://github.com/farazshafi/PROGAD",
+      liveUrl: "https://progad.vercel.app/"
     },
     {
       title: "AI Resume Builder",
@@ -475,14 +585,38 @@ function App() {
     { title: "DevOps", skills: ["Docker", "Kubernetes", "Nginx", "Linux/SSH", "CI/CD", "AWS"] }
   ];
 
+  const handleConfirmLive = () => {
+    if (pendingLiveProject && pendingLiveProject.liveUrl) {
+      window.open(pendingLiveProject.liveUrl, '_blank', 'noopener,noreferrer');
+    }
+    setPendingLiveProject(null);
+  };
+
   return (
     <div className="root-container">
       <CustomCursor cursorState={cursorState} />
       <InteractiveBackground />
-      <AnimatePresence>{selectedProject && <ProjectModal project={selectedProject} onClose={() => setSelectedProject(null)} />}</AnimatePresence>
+      <AnimatePresence>
+        {selectedProject && (
+          <ProjectModal
+            project={selectedProject}
+            onClose={() => setSelectedProject(null)}
+            onRequestLive={(proj) => setPendingLiveProject(proj)}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {pendingLiveProject && (
+          <LiveConfirmationModal
+            project={pendingLiveProject}
+            onClose={() => setPendingLiveProject(null)}
+            onConfirm={handleConfirmLive}
+          />
+        )}
+      </AnimatePresence>
       <nav className={`navbar ${isMenuOpen ? 'menu-open' : ''}`}>
         <div className="logo">FARAZ SHAFI</div>
-        
+
         {/* Mobile Menu Toggle */}
         <button className="menu-toggle" onClick={() => setIsMenuOpen(!isMenuOpen)}>
           {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
@@ -516,7 +650,13 @@ function App() {
           <div className="section-header"><span className="section-number">01</span><h2>Production Artifacts</h2></div>
           <div className="projects-grid">
             {projects.map((proj, i) => (
-              <ProjectCard key={i} {...proj} index={i} onSelect={() => setSelectedProject(proj)} />
+              <ProjectCard
+                key={i}
+                project={proj}
+                index={i}
+                onSelect={() => setSelectedProject(proj)}
+                onRequestLive={(p) => setPendingLiveProject(p)}
+              />
             ))}
             <motion.div initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }} viewport={{ once: true }} className="see-more-card">
               <div className="see-more-inner">
@@ -552,3 +692,4 @@ function App() {
 }
 
 export default App
+
