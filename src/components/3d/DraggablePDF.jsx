@@ -2,7 +2,7 @@ import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 
-export function DraggablePDF({ onDrop, onStateChange }) {
+export function DraggablePDF({ onDrop }) {
     const meshRef = useRef();
     const { viewport } = useThree();
     const { scene } = useGLTF('/document-3d/scene.gltf');
@@ -47,7 +47,6 @@ export function DraggablePDF({ onDrop, onStateChange }) {
                     e.stopPropagation();
                     e.target.setPointerCapture(e.pointerId);
                     setIsDragging(true);
-                    onStateChange('grabbing');
                 }}
                 onPointerMove={(e) => {
                     if (isDragging) {
@@ -58,17 +57,6 @@ export function DraggablePDF({ onDrop, onStateChange }) {
                         const newX = (x * viewport.width) / 2;
                         const newY = (y * viewport.height) / 2;
                         setPos([newX, newY, 0]);
-
-                        // Responsive threshold check
-                        const isOverDropZone = viewport.width < 5
-                            ? newY < -viewport.height / 10  // Mobile: Dragged down
-                            : newX > viewport.width / 10;   // Desktop: Dragged right
-
-                        if (isOverDropZone) {
-                            onStateChange('download');
-                        } else {
-                            onStateChange('grabbing');
-                        }
                     }
                 }}
                 onPointerUp={(e) => {
@@ -84,10 +72,7 @@ export function DraggablePDF({ onDrop, onStateChange }) {
                         onDrop();
                     }
                     setPos(restingPos); // Snap back to zone center
-                    onStateChange('hover');
                 }}
-                onPointerOver={() => onStateChange('hover')}
-                onPointerOut={() => onStateChange('default')}
                 cursor="grab"
             />
         </group>

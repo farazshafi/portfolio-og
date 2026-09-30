@@ -4,7 +4,6 @@ import { AnimatePresence } from 'framer-motion';
 import { PROJECTS_DATA, SKILL_CATEGORIES_DATA, PREWARM_LIVE_URLS } from './data/portfolioData';
 import { useFaviconAnimation } from './hooks/useFaviconAnimation';
 
-import CustomCursor from './components/common/CustomCursor';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { CanvasFallback } from './components/common/LoadingFallback';
 
@@ -25,7 +24,6 @@ function App() {
   useFaviconAnimation();
   const [selectedProject, setSelectedProject] = useState(null);
   const [pendingLiveProject, setPendingLiveProject] = useState(null);
-  const [cursorState, setCursorState] = useState('default');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Pre-warm / ping live project backend links when someone enters the portfolio page
@@ -46,8 +44,6 @@ function App() {
 
   return (
     <div className="root-container">
-      <CustomCursor cursorState={cursorState} />
-
       <ErrorBoundary fallback={<CanvasFallback />}>
         <Suspense fallback={<CanvasFallback />}>
           <InteractiveBackground />
@@ -84,7 +80,7 @@ function App() {
           onRequestLive={setPendingLiveProject}
         />
         <SkillsSection skillCategories={SKILL_CATEGORIES_DATA} />
-        <ResumeSection onCursorStateChange={setCursorState} />
+        <ResumeSection />
         <ContactSection />
       </main>
     </div>

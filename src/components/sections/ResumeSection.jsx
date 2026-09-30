@@ -7,7 +7,7 @@ import DraggablePDF from '../3d/DraggablePDF';
 import { ErrorBoundary } from '../common/ErrorBoundary';
 import { LoadingFallback } from '../common/LoadingFallback';
 
-export function ResumeSection({ onCursorStateChange }) {
+export function ResumeSection() {
     const [isDropped, setIsDropped] = useState(false);
     const lastDownloadTime = useRef(0);
 
@@ -34,11 +34,7 @@ export function ResumeSection({ onCursorStateChange }) {
             </div>
             <div className="resume-grid" style={{ position: 'relative' }}>
                 <div className="resume-visual-bg">
-                    <div
-                        className="resume-3d-container-v2"
-                        onMouseEnter={() => onCursorStateChange('hover')}
-                        onMouseLeave={() => onCursorStateChange('default')}
-                    >
+                    <div className="resume-3d-container-v2">
                         <div className="drag-hint">DRAG RESUME TO DOWNLOAD</div>
                     </div>
                     <div className={`download-zone ${isDropped ? 'success' : ''}`}>
@@ -66,7 +62,7 @@ export function ResumeSection({ onCursorStateChange }) {
                             <ambientLight intensity={0.5} />
                             <pointLight position={[10, 10, 10]} />
                             <React.Suspense fallback={null}>
-                                <DraggablePDF onDrop={handleDownload} onStateChange={onCursorStateChange} />
+                                <DraggablePDF onDrop={handleDownload} />
                             </React.Suspense>
                             <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
                         </Canvas>
